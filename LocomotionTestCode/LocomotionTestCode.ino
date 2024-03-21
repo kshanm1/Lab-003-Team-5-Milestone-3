@@ -82,7 +82,7 @@ unsigned int  robotModeIndex = 0;                                              /
 unsigned int  modeIndicator[6] = {                                             // colours for different modes
    SmartLEDs.Color(255,0,0),                                                   //   red - stop
    SmartLEDs.Color(0,255,0),                                                   //   green - run
-}                                                                            
+};                                                                            
 
 Encoder encoder[] = {{ENCODER_LEFT_A, ENCODER_LEFT_B, 0},                      // left encoder, 0 position 
                      {ENCODER_RIGHT_A, ENCODER_RIGHT_B, 0}};                   // right encoder, 0 position   
@@ -187,6 +187,7 @@ void loop()
       // modes 
       // 0 = Default after power up/reset. Robot is stopped.
       // 1 = Press mode button once to enter.        Run robot
+      switch(robotModeIndex) {
          case 0: // Robot stopped
             setMotor(0, 0, cIN1Chan[0], cIN2Chan[0]);                          // stop left motor
             setMotor(0, 0, cIN1Chan[1], cIN2Chan[1]);                          // stop right motor
@@ -223,25 +224,56 @@ void loop()
                            driveIndex = 1;                                     // Next state: drive forward
                            break;
 
-                        case 1: // Drives forward 50cm and then back 25cm
+                        case 1: // Drives forward 50cm
                            driveForward(50, driveSpeed);
-                           driveBack(25, driveSpeed);
-                           driveIndex = 2;                                    // Next state: Pauses before moving backwards again
+                           driveIndex = 2;                                    // Next state:
                            break;
 
-                        case 2: // Pauses for 4 seconds
-                        if(timeUp4sec)
-                          timeUp4sec = false;   // Resets the 4 second timer
-                          driveIndex = 3;       // Next state: Drive backwards another 25cm
+                        case 2: // Rotate left
+                          setMotor(-1, driveSpeed, cIN1Chan[0], cIN2Chan[0]); // left motor reverse
+                          setMotor(-1, driveSpeed, cIN1Chan[1], cIN2Chan[1]); // right motor reverse
+                          driveIndex = 3;
                           break;
 
-                        case 3: // Drives backward 25cm
-                           driveBack(25, driveSpeed);
-                           driveIndex = 4;              // Next state: Pauses for 2 seconds before entering idle mode
+                        case 3: // Drives forward 25cm
+                           driveForward(25, driveSpeed);
+                           driveIndex = 4;              // Next state: Rotate bot left
                            break;
-                        case 4: // Pause 2 seconds
-                           robotModeIndex = 0;          // Next robotMode state: Resets to 0, entering idle state
-                           break;
+
+                        case 4: // Rotate left
+                          setMotor(-1, driveSpeed, cIN1Chan[0], cIN2Chan[0]); // left motor reverse
+                          setMotor(-1, driveSpeed, cIN1Chan[1], cIN2Chan[1]); // right motor reverse
+                          driveIndex = 5;
+                          break;
+
+                        case 5: // Drive forward 25cm
+                          driveForward(25, driveSpeed);
+                          driveIndex = 6;
+                          break;
+
+                        case 6:
+                          setMotor(-1, driveSpeed, cIN1Chan[0], cIN2Chan[0]); // left motor reverse
+                          setMotor(-1, driveSpeed, cIN1Chan[1], cIN2Chan[1]); // right motor reverse
+                          driveIndex = 7;
+                          break;
+
+                        case 7:
+                          driveForward(25, driveSpeed);
+                          driveIndex = 8;
+                          break;
+
+                        case 8:
+                          setMotor(1, driveSpeed, cIN1Chan[0], cIN2Chan[0]);  // left motor forward
+                          setMotor(1, driveSpeed, cIN1Chan[1], cIN2Chan[1]);  // right motor forward
+                          driveIndex = 9;
+                          break;
+
+                        case 9:
+                          driveForward(25, driveSpeed);
+                          setMotor(0, 0, cIN1Chan[0], cIN2Chan[0]);           // Stops left and right motor
+                          setMotor(0, 0, cIN1Chan[1], cIN2Chan[1]);
+                          break;
+
                      }
                   }
                }
