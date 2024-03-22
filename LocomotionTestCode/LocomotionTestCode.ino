@@ -332,8 +332,8 @@ void forwardDistance(long distanceCm){
 
 
 void ninetyLeft(){
-  //6.5 was decided off measurements and trial/error
-  //Move exactly 90 degrees
+  //Rotate CCW 90 degrees
+  //20 was decided off measurements and trial/error
     float targetCounts = 20 / distancePerCount;
     LeftEncoder.clearEncoder();
     RightEncoder.clearEncoder();
