@@ -1,40 +1,12 @@
 /*
 
- MSE 2202 MSEBot base code for Lab 4
+ MSE 2202 Milestone 3 Locomotion Code
  Language: Arduino
- Authors: Eugen Porter and Michael Naish
+ Authors: Lab 003 Team 5
  
- Rev 1 - Initial version 2016
- Rev 2 - Update for MSEduino V0.2
- ...
- Rev 4 - revisit for MSEduino V4.2 2023
- Rev 5 - revisit for MSEduino V5.1 2024
-
  */
 
-//  To program and use ESP32-S3
-//   
-//  Tools->:
-//  Board: "Adafruit Feather ESP32-S3 No PSRAM"
-//  Upload Speed: "921600"
-//  USB CDC On Boot: "Enabled"
-//  USB Firmware MSC on Boot: "Disabled"
-//  USB DFU On Bot: "Disabled"
-//  Upload Mode:"UART0/Hardware CDC"
-//  SPU Frequency: "240MHz (WiFi)"
-//  Flash Mode: "QIO 80MHz"
-//  Flash SIze: "4MB (32Mb)"
-//  Partition Scheme: "Default 4MB with spiffs (1.2MB app/1.5MB SPIFFS)"
-//  Core Debug Level: "Verbose"
-//  PSRAM: 'Disabled"
-//  Arduino Runs On: "Core 1"
-//  Events Run On: "Core 1"
-//
-//  To program, press and hold the reset button then press and hold program button, release the reset button then 
-//  release the program button 
-//
 
-// Uncomment keywords to enable debugging output
 //#define DEBUG_DRIVE_SPEED    1
 //#define DEBUG_ENCODER_COUNT  1
 
@@ -79,12 +51,8 @@ const float distancePerCount = wheelCircumference / cCountsRev;                /
 // IMPORTANT: The constants in this section need to be set to appropriate values for your robot. 
 //            You will have to experiment to determine appropriate values.
 
-const int cClawServoOpen = 500;                                               // Value for open position of claw
-const int cClawServoClosed = 1650;                                             // Value for closed position of claw
-const int cArmServoUp = 2100;                                                  // Value for shoulder of arm fully up
-const int cArmServoDown = 1100;                                                // Value for shoulder of arm fully down
 const int cLeftAdjust = 0;                                                     // Amount to slow down left motor relative to right
-const int cRightAdjust = 0;                                                    // Amount to slow down right motor relative to left
+const int cRightAdjust = 30;                                                    // Amount to slow down right motor relative to left
 
 //
 //=====================================================================================================================
@@ -98,8 +66,6 @@ unsigned char leftDriveSpeed;                                                  /
 unsigned char rightDriveSpeed;                                                 // motor drive speed (0-255)
 unsigned char driveIndex;                                                      // state index for run mode
 unsigned int modePBDebounce;                                                   // pushbutton debounce timer count
-unsigned int potClawSetpoint;                                                  // desired position of claw servo read from pot
-unsigned int potShoulderSetpoint;                                              // desired position of shoulder servo read from pot
 unsigned long timerCount3sec = 0;                                              // 3 second timer count in milliseconds
 unsigned long timerCount2sec = 0;                                              // 2 second timer count in milliseconds
 unsigned long timerCount200msec = 0;                                           // 200 millisecond timer count in milliseconds
@@ -146,8 +112,6 @@ void setup() {
    
   // Set up motors and encoders
    Bot.driveBegin("D1", LEFT_MOTOR_A, LEFT_MOTOR_B, RIGHT_MOTOR_A, RIGHT_MOTOR_B); // set up motors as Drive 1
-   Bot.servoBegin("S1", CLAW_SERVO);                                           // set up claw servo
-   Bot.servoBegin("S2", SHOULDER_SERVO);                                       // set up shoulder servo
    LeftEncoder.Begin(ENCODER_LEFT_A, ENCODER_LEFT_B, &Bot.iLeftMotorRunning ); // set up left encoder
    RightEncoder.Begin(ENCODER_RIGHT_A, ENCODER_RIGHT_B, &Bot.iRightMotorRunning ); // set up right encoder
  
@@ -321,48 +285,6 @@ void loop() {
                Bot.Stop("D1");  
             }
             break;
-
-         case 2: // Test IR receiver
-            Bot.Stop("D1");  
-            if (Scan.Available()) {                                            // if data is received
-              Serial.println(Scan.Get_IR_Data());                              // output received data to serial
-            }
-            break;
-
-         case 3: // Test claw servo with pot
-            // read pot and map to allowable servo range for claw
-            potClawSetpoint = map(analogRead(POT_R1), 0, 4096, cClawServoClosed, cClawServoOpen);
-            Bot.ToPosition("S1", potClawSetpoint);                             // update claw servo position
-            if (timeUp200msec) {                                               // limit output rate to serial monitor
-               timeUp200msec = false;                                          // reset 200 mS timer
-               Serial.print(F("Claw : Pot R1 = "));
-               Serial.print(analogRead(POT_R1));
-               Serial.print(F(", mapped = "));
-               Serial.println(potClawSetpoint);
-            }
-            break;
-          
-         case 4: // Test shoulder servo with pot
-            // read pot and map to allowable stepper range for shoulder
-            potShoulderSetpoint = map(analogRead(POT_R1), 0, 4096, cArmServoDown, cArmServoUp);
-            Bot.ToPosition("S2", potShoulderSetpoint);                         // update shoulder servo position
-            if (timeUp200msec) {                                               // limit output rate to serial monitor
-               timeUp200msec = false;                                          // reset 200 mS timer
-               Serial.print(F("Shoulder : Pot R1 = "));
-               Serial.print(analogRead(POT_R1));
-               Serial.print(F(", mapped = "));
-               Serial.println(potShoulderSetpoint);
-            }
-            break;
-           
-         case 5: //add your code to do something 
-            robotModeIndex = 0; //  !!!!!!!  remove if using the case
-            break;
-
-         case 6: //add your code to do something 
-            robotModeIndex = 0; //  !!!!!!!  remove if using the case
-            break;
-
       }
 
       // Update brightness of heartbeat display on SmartLED
@@ -419,7 +341,7 @@ void forwardDistance(long distanceCm){
 void ninetyLeft(){
   //6.5 was decided off measurements and trial/error
   //Move exactly 90 degrees
-    float targetCounts = 12.2 / distancePerCount;
+    float targetCounts = 20 / distancePerCount;
     LeftEncoder.clearEncoder();
     RightEncoder.clearEncoder();
 
@@ -451,7 +373,7 @@ void ninetyLeft(){
 }
 
 void ninetyRight(){
-    float targetCounts = 12.2 / distancePerCount;
+    float targetCounts = 17 / distancePerCount;
     LeftEncoder.clearEncoder();
     RightEncoder.clearEncoder();
 
