@@ -1,9 +1,7 @@
 /*
-
  MSE 2202 Milestone 3 Locomotion Code
  Language: Arduino
  Authors: Lab 003 Team 5
- 
  */
 
 
@@ -192,12 +190,7 @@ void loop() {
 
       // modes 
       // 0 = Default after power up/reset. Robot is stopped.
-      // 1 = Press mode button once to enter.        Run robot
-      // 2 = Press mode button twice to enter.       Test IR receiver 
-      // 3 = Press mode button three times to enter. Test claw servo 
-      // 4 = Press mode button four times to enter.  Test shoulder servo 
-      // 5 = Press mode button five times to enter.  Add your code to do something 
-      // 6 = Press mode button six times to enter.   Add your code to do something 
+      // 1 = Press mode button once to enter. Robot traverses a square perimeter 
       switch(robotModeIndex) {
          case 0: // Robot stopped
             Bot.Stop("D1");    
@@ -207,7 +200,7 @@ void loop() {
             timeUp2sec = false;                                                // reset 2 second timer
             break;
 
-         case 1: // Run robot
+         case 1: // Robot drives along a square path
             if (timeUp3sec) {                                                  // pause for 3 sec before running case 1 code
                // Read pot to update drive motor speed
                pot = analogRead(POT_R1);
@@ -240,31 +233,31 @@ void loop() {
                            driveIndex++;                                       // next state: drive forward
                            break;
 
-                        case 1: // Drive forward across 2 sheets
-                           forwardDistance(56);
-                           driveIndex++;                                       // next state: drive backward
-                           break;
-
-                        case 2: // Rotate
-                           ninetyLeft();
-                           ninetyLeft();
-                           driveIndex++;                                       // next state: turn left
-                           break;
-
-                        case 3: // Drive across the third sheet
+                        case 1: // Drive forward 50cm
                            forwardDistance(50);
-                           driveIndex++;                                       // next state: turn right
+                           driveIndex++;                                       
                            break;
-                        case 4: //Turn around
+
+                        case 2: // Rotate 90 degrees left
+                           ninetyLeft();
+                           ninetyLeft();
+                           driveIndex++;                                      
+                           break;
+
+                        case 3: // Drive forward 50cm
+                           forwardDistance(50);
+                           driveIndex++;                                       
+                           break;
+                        case 4: // Rotate 90 degrees left
                             ninetyLeft();
                             ninetyLeft();
                             driveIndex++;
                             break;
-                        case 5: //Go Forward
+                        case 5: // Drive forward 50cm
                             forwardDistance(56);
                             driveIndex++;
                             break;
-                        case 6: //Turns left
+                        case 6: // Rotate 90 degrees left
                             ninetyLeft();
                             ninetyLeft();
                             driveIndex++;
@@ -371,39 +364,6 @@ void ninetyLeft(){
     
     Bot.Stop("D1");
 }
-
-void ninetyRight(){
-    float targetCounts = 17 / distancePerCount;
-    LeftEncoder.clearEncoder();
-    RightEncoder.clearEncoder();
-
-    LeftEncoder.getEncoderRawCount();
-    RightEncoder.getEncoderRawCount();
-
-    // Initially read the current encoder counts
-    long initialLeftCount = LeftEncoder.lRawEncoderCount;
-    long initialRightCount = RightEncoder.lRawEncoderCount;
-
-
-    Bot.Right("D1", leftDriveSpeed, rightDriveSpeed);
-
-  while (true) {
-        // Update encoder counts
-        LeftEncoder.getEncoderRawCount();
-        RightEncoder.getEncoderRawCount();
-        
-        // Calculate the difference from the initial counts
-        long traveledLeftCounts = abs(LeftEncoder.lRawEncoderCount - initialLeftCount);
-        long traveledRightCounts = abs(RightEncoder.lRawEncoderCount - initialRightCount);
-        // Check if the robot has traveled the desired distance
-        if (traveledLeftCounts >= targetCounts) {
-            break; // Exit loop if target distance is reached
-        }
-  }
-    
-    Bot.Stop("D1");
-}
-
 
 
 // Set colour of Smart LED depending on robot mode (and update brightness)
