@@ -30,8 +30,6 @@ void Indicator();                                                              /
 #define SMART_LED           21                                                 // when DIP Switch S1-4 is on, Smart LED is connected to pin 23 GPIO21 (J21)
 #define SMART_LED_COUNT     1                                                  // number of SMART LEDs in use
 #define IR_DETECTOR         14                                                 // GPIO14 pin 17 (J14) IR detector input
-#define SHOULDER_SERVO      40                                                 // GPIO41 pin 34 (J41) Servo 1
-#define CLAW_SERVO          42                                                 // GPIO42 pin 35 (J42) Servo 2
 
 // Constants
 const int cDisplayUpdate = 100;                                                // update interval for Smart LED in milliseconds
@@ -41,7 +39,7 @@ const int cMaxPWM = pow(2, cPWMRes) - 1;                                       /
 
 
 const int cCountsRev = 1096;                                                   // encoder pulses per motor revolution
-const float wheelCircumference = 3.14159 * 4;                                  // Calculate circuimference
+const float wheelCircumference = 3.14159 * 3.7;                                  // Calculate circuimference
 const float distancePerCount = wheelCircumference / cCountsRev;                // Distance traveled in one wheel rotation
 
 //=====================================================================================================================
@@ -50,7 +48,7 @@ const float distancePerCount = wheelCircumference / cCountsRev;                /
 //            You will have to experiment to determine appropriate values.
 
 const int cLeftAdjust = 0;                                                     // Amount to slow down left motor relative to right
-const int cRightAdjust = 30;                                                    // Amount to slow down right motor relative to left
+const int cRightAdjust = 00;                                                    // Amount to slow down right motor relative to left
 
 //
 //=====================================================================================================================
@@ -70,6 +68,10 @@ unsigned long timerCount200msec = 0;                                           /
 unsigned long displayTime;                                                     // heartbeat LED update timer
 unsigned long previousMicros;                                                  // last microsecond count
 unsigned long currentMicros;                                                   // current microsecond count
+char IRData = ' ';
+bool calibrated = false;
+
+
 
 // Declare SK6812 SMART LED object
 //   Argument 1 = Number of LEDs (pixels) in use
@@ -113,7 +115,7 @@ void setup() {
    LeftEncoder.Begin(ENCODER_LEFT_A, ENCODER_LEFT_B, &Bot.iLeftMotorRunning ); // set up left encoder
    RightEncoder.Begin(ENCODER_RIGHT_A, ENCODER_RIGHT_B, &Bot.iRightMotorRunning ); // set up right encoder
  
-   Scan.Begin(IR_DETECTOR, 1200);                                              //set up IR Detection @ 1200 baud
+   Scan.Begin(IR_DETECTOR, 1200);        //set up IR Detection @ 1200 baud
   
    // Set up SmartLED
    SmartLEDs.begin();                                                          // initialize smart LEDs object (REQUIRED)
@@ -225,53 +227,58 @@ void loop() {
                }
 #endif
                if (motorsEnabled) {                                            // run motors only if enabled
-                  if (timeUp2sec) {                                            // update drive state after 2 seconds
-                     timeUp2sec = false;                                       // reset 2 second timer
                      switch(driveIndex) {                                      // cycle through drive states
                         case 0: // Stop
                            Bot.Stop("D1");                                     // drive ID
-                           driveIndex++;                                       // next state: drive forward
-                           break;
-
-                        case 1: // Drive forward 50cm
                            forwardDistance(50);
-                           driveIndex++;                                       
-                           break;
-
-                        case 2: // Rotate 90 degrees left
                            ninetyLeft();
-                           ninetyLeft();
-                           driveIndex++;                                      
-                           break;
-
-                        case 3: // Drive forward 50cm
                            forwardDistance(50);
-                           driveIndex++;                                       
+                           ninetyLeft();
+                           forwardDistance(50);
+                           ninetyLeft();
+                           forwardDistance(50);
+                           Bot.Stop("D1");                                    
+
+                           driveIndex++;                                       // next state:
                            break;
-                        case 4: // Rotate 90 degrees left
-                            ninetyLeft();
-                            ninetyLeft();
+
+                        case 1:
+                        while(true){
+                          Bot.Reverse("D1", leftDriveSpeed, rightDriveSpeed);
+                          
+                          if (Scan.Available()) {         // if data is received
+                          IRData = Scan.Get_IR_Data();  // get data
+
+                            // if the IR output is recieved as U, set flag to calibrated
+                            if (IRData == 'U') {
+                            calibrated = true;
+                            driveIndex++;  // next state: 
+                            break;
+                              }
+                            }
+                        }
+                          break;
+
+                        case 2:
+                          forwardDistance(30);
+                          Bot.Stop("D1");
+                          if (timeUp2sec){
                             driveIndex++;
                             break;
-                        case 5: // Drive forward 50cm
-                            forwardDistance(56);
-                            driveIndex++;
-                            break;
-                        case 6: // Rotate 90 degrees left
+                          }
+
+                        case 3: //Finish movement
+                            Bot.Forward("D1", leftDriveSpeed, rightDriveSpeed);
+                            if (timeUp2sec){
+                            timeUp2sec = false;
                             ninetyLeft();
-                            ninetyLeft();
-                            driveIndex++;
-                            break;
-                        case 7: //Go Forward
-                            forwardDistance(56);
-                            driveIndex++;
-                            break;
-                        case 8: //Finish movement
-                            Bot.Stop("D1");
+                            driveIndex = 0;
                             robotModeIndex = 0;
+                            calibrated = false;
                             break;
+
+                          }
                      }
-                  }
                }
             }
             else {                                                             // stop when motors are disabled
@@ -308,7 +315,7 @@ void forwardDistance(long distanceCm){
     long initialRightCount = RightEncoder.lRawEncoderCount;
 
 
-    Bot.Forward("D1", leftDriveSpeed, rightDriveSpeed);
+    Bot.Reverse("D1", leftDriveSpeed, rightDriveSpeed);
 
   while (true) {
         // Update encoder counts
@@ -334,7 +341,7 @@ void forwardDistance(long distanceCm){
 void ninetyLeft(){
   //Rotate CCW 90 degrees
   //20 was decided off measurements and trial/error
-    float targetCounts = 20 / distancePerCount;
+    float targetCounts = 40 / distancePerCount;
     LeftEncoder.clearEncoder();
     RightEncoder.clearEncoder();
 
