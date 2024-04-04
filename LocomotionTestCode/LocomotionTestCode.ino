@@ -47,8 +47,8 @@ const float distancePerCount = wheelCircumference / cCountsRev;                /
 // IMPORTANT: The constants in this section need to be set to appropriate values for your robot. 
 //            You will have to experiment to determine appropriate values.
 
-const int cLeftAdjust = 0;                                                     // Amount to slow down left motor relative to right
-const int cRightAdjust = 5;                                                    // Amount to slow down right motor relative to left
+const int cLeftAdjust = 5;                                                     // Amount to slow down left motor relative to right
+const int cRightAdjust = 0;                                                    // Amount to slow down right motor relative to left
 
 //
 //=====================================================================================================================
@@ -341,7 +341,7 @@ void forwardDistance(long distanceCm){
 void ninetyLeft(){
   //Rotate CCW 90 degrees
   //20 was decided off measurements and trial/error
-    float targetCounts = 50 / distancePerCount;
+    float targetCounts = 60 / distancePerCount;
     LeftEncoder.clearEncoder();
     RightEncoder.clearEncoder();
 
