@@ -14,6 +14,8 @@
 
 // Function declarations
 void Indicator();                                                              // for mode/heartbeat on Smart LED
+void forwardDistance(long distanceCm);
+void ninetyLeft();
 
 // Port pin constants
 #define LEFT_MOTOR_A        35                                                 // GPIO35 pin 28 (J35) Motor 1 A
@@ -21,7 +23,7 @@ void Indicator();                                                              /
 #define RIGHT_MOTOR_A       37                                                 // GPIO37 pin 30 (J37) Motor 2 A
 #define RIGHT_MOTOR_B       38                                                 // GPIO38 pin 31 (J38) Motor 2 B
 #define ENCODER_LEFT_A      15                                                 // left encoder A signal is connected to pin 8 GPIO15 (J15)
-#define ENCODER_LEFT_B      16                                                 // left encoder B signal is connected to pin 8 GPIO16 (J16)
+#define ENCODER_LEFT_B      16                                                 // left encoder B signal is connected to pin 9 GPIO16 (J16)
 #define ENCODER_RIGHT_A     11                                                 // right encoder A signal is connected to pin 19 GPIO11 (J11)
 #define ENCODER_RIGHT_B     12                                                 // right encoder B signal is connected to pin 20 GPIO12 (J12)
 #define MODE_BUTTON         0                                                  // GPIO0  pin 27 for Push Button 1
@@ -39,18 +41,14 @@ const int cMaxPWM = pow(2, cPWMRes) - 1;                                       /
 
 
 const int cCountsRev = 1096;                                                   // encoder pulses per motor revolution
-const float wheelCircumference = 3.14159 * 3.7;                                  // Calculate circuimference
-const float distancePerCount = wheelCircumference / cCountsRev;                // Distance traveled in one wheel rotation
+const float wheelCircumference = 3.14159 * 3.7;                                
+const float distancePerCount = wheelCircumference / cCountsRev;                
 
 //=====================================================================================================================
-//
-// IMPORTANT: The constants in this section need to be set to appropriate values for your robot. 
-//            You will have to experiment to determine appropriate values.
 
-const int cLeftAdjust = 5;                                                     // Amount to slow down left motor relative to right
+const int cLeftAdjust = 10;                                                     // Amount to slow down left motor relative to right
 const int cRightAdjust = 0;                                                    // Amount to slow down right motor relative to left
 
-//
 //=====================================================================================================================
 
 // Variables
@@ -70,7 +68,6 @@ unsigned long previousMicros;                                                  /
 unsigned long currentMicros;                                                   // current microsecond count
 char IRData = ' ';
 bool calibrated = false;
-
 
 
 // Declare SK6812 SMART LED object
@@ -93,10 +90,6 @@ unsigned int  robotModeIndex = 0;                                              /
 unsigned int  modeIndicator[6] = {                                             // colours for different modes
    SmartLEDs.Color(255,0,0),                                                   //   red - stop
    SmartLEDs.Color(0,255,0),                                                   //   green - run
-   SmartLEDs.Color(0,0,255),                                                   //   blue - empty case
-   SmartLEDs.Color(255,255,0),                                                 //   yellow - empty case
-   SmartLEDs.Color(0,255,255),                                                 //   cyan - empty case
-   SmartLEDs.Color(255,0,255)                                                  //   magenta - empty case
 };                                                                            
 
 // Motor, encoder, and IR objects (classes defined in MSE2202_Lib)
@@ -228,21 +221,21 @@ void loop() {
 #endif
                if (motorsEnabled) {                                            // run motors only if enabled
                      switch(driveIndex) {                                      // cycle through drive states
-                        case 0: // Stop
+                        case 0: // Bot is initially stopped and then drives along a square path
                            Bot.Stop("D1");                                     // drive ID
-                           forwardDistance(50);
+                           forwardDistance(100);
                            ninetyLeft();
-                           forwardDistance(50);
+                           forwardDistance(100);
                            ninetyLeft();
-                           forwardDistance(50);
+                           forwardDistance(100);
                            ninetyLeft();
-                           forwardDistance(50);
+                           forwardDistance(100);
                            Bot.Stop("D1");                                    
 
-                           driveIndex++;                                       // next state:
+                           driveIndex++;  
                            break;
 
-                        case 1:
+                        case 1: // Bot drives forward until an IR signal is detected
                         while(true){
                           Bot.Reverse("D1", leftDriveSpeed, rightDriveSpeed);
                           
@@ -259,7 +252,7 @@ void loop() {
                         }
                           break;
 
-                        case 2:
+                        case 2: // Bot drives forward for 30cm
                           forwardDistance(30);
                           Bot.Stop("D1");
                           if (timeUp2sec){
@@ -267,17 +260,63 @@ void loop() {
                             break;
                           }
 
-                        case 3: //Finish movement
+                        case 3: // Bot repositions and reorients itself for another loop
                             Bot.Forward("D1", leftDriveSpeed, rightDriveSpeed);
                             if (timeUp2sec){
                             timeUp2sec = false;
                             ninetyLeft();
-                            driveIndex = 0;
-                            robotModeIndex = 0;
+                            driveIndex++;
                             calibrated = false;
                             break;
-
                           }
+                          case 4: // Bot drives along a square path of slightly larger perimeter
+                            Bot.Stop("D1");                                     // drive ID
+                            forwardDistance(150);
+                            ninetyLeft();
+                            forwardDistance(150);
+                            ninetyLeft();
+                            forwardDistance(150);
+                            ninetyLeft();
+                            forwardDistance(150);
+                            Bot.Stop("D1");                                    
+
+                            driveIndex++;                                       // next state:
+                            break;
+
+                          case 5: // Bot drives forward until an IR signal is detected
+                          while(true){
+                            Bot.Reverse("D1", leftDriveSpeed, rightDriveSpeed);
+                            
+                            if (Scan.Available()) {         // if data is received
+                            IRData = Scan.Get_IR_Data();  // get data
+
+                              // if the IR output is recieved as U, set flag to calibrated
+                              if (IRData == 'U') {
+                              calibrated = true;
+                              driveIndex++;  // next state: 
+                              break;
+                                }
+                              }
+                          }
+                            break;
+
+                          case 6: // Bot drives forward for 30cm
+                            forwardDistance(30);
+                            Bot.Stop("D1");
+                            if (timeUp2sec){
+                              driveIndex++;
+                              break;
+                            }
+
+                          case 7: // Finish movement
+                              Bot.Forward("D1", leftDriveSpeed, rightDriveSpeed);
+                              if (timeUp2sec){
+                              timeUp2sec = false;
+                              ninetyLeft();
+                              driveIndex = 0;
+                              robotModeIndex = 0;
+                              calibrated = false;
+                              break;
                      }
                }
             }
@@ -298,8 +337,9 @@ void loop() {
          SmartLEDs.setBrightness(LEDBrightnessLevels[LEDBrightnessIndex]);    // set brightness of heartbeat LED
          Indicator();                                                         // update LED
       }
-   }
-}   
+  }
+ }
+}
 
 void forwardDistance(long distanceCm){
   //Use encoder positions to move a specific distance
